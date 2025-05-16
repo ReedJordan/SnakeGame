@@ -9,11 +9,11 @@ import java.util.concurrent.TimeUnit;
 
 public class GamePanel extends JPanel{
 
-    int SCREEN_WIDTH = 600;
-    int SCREEN_HEIGHT = 600;
+    int SCREEN_WIDTH = 800;
+    int SCREEN_HEIGHT = 800;
     int UNIT_SIZE = 25;
     int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / UNIT_SIZE;
-    int DELAY = 75;
+    int DELAY = 90;
     int[] x = new int[GAME_UNITS];
     int[] y = new int[GAME_UNITS];
     int bodyParts = 6;
@@ -34,7 +34,7 @@ public class GamePanel extends JPanel{
     public GamePanel() {
         random = new Random();
         this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
-        this.setBackground(Color.black);
+        this.setBackground(Color.dark_gray);
         this.setFocusable(true);
         this.addKeyListener(new MyKeyAdapter());
         startGame();
@@ -74,8 +74,15 @@ public class GamePanel extends JPanel{
                 g.drawLine(i * UNIT_SIZE, 0, i * UNIT_SIZE, SCREEN_HEIGHT);
                 g.drawLine(0, i * UNIT_SIZE, SCREEN_WIDTH, i * UNIT_SIZE);
             }
+            g.setColor(Color.white);
+            g.fillOval(deathAppleX, deathAppleY, Unit_SIZE, UNIT_SIZE);
+            g.setColor(Color.cyan);
+            g.fillOval(shrinkAppleX, shrinkAppleY, UNIT_SIZE, UNIT_SIZE);
             g.setColor(Color.red);
             g.fillOval(appleOneX, appleOneY, UNIT_SIZE, UNIT_SIZE);
+            g.fillOval(appleTwoX, appleTwoY, UNIT_SIZE, UNIT_SIZE);
+            
+            
 
             for (int i = 0; i < bodyParts; i++) {
                 if (i == 0) {
@@ -169,10 +176,23 @@ public class GamePanel extends JPanel{
     }
 
     public void checkApple() {
-        if ((x[0] == appleOneX) && (y[0] == appleOneY)) {
+        if (((x[0] == appleOneX) && (y[0] == appleOneY))) {
             bodyParts++;
             applesEaten++;
             newAppleOne();
+        } else if ((x[0] == appleTwoX) && (y[0] == appleTwoY)){
+            bodyParts++;
+            applesEaten++;
+            newAppleTwo();
+        } else if ((x[0] == shrinkAppleX) && (y[0] == shrinkAppleY)){
+            bodyParts--;
+            applesEaten++;
+            if(bodyParts == 0){
+                gameGoing = false;
+            }
+            newShrinkApple();
+        } else if ((x[0] == deathAppleX) && (y[0] == deathAppleY)){
+            gameGoing = false;
         }
     }
 
@@ -187,11 +207,6 @@ public class GamePanel extends JPanel{
         if (x[0] < 0 || x[0] > SCREEN_WIDTH || y[0] < 0 || y[0] > SCREEN_HEIGHT){
             gameGoing = false;
         }
-        /**
-         if(!gameGoing){
-         gameOver();
-         }
-         **/
     }
 
     public void gameOver(Graphics g) {
