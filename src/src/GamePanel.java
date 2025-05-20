@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit;
 
 public class GamePanel extends JPanel{
 
-    int SCREEN_WIDTH = 800;
-    int SCREEN_HEIGHT = 800;
+    int SCREEN_WIDTH = 600;
+    int SCREEN_HEIGHT = 600;
     int UNIT_SIZE = 25;
     int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / UNIT_SIZE;
     int DELAY = 90;
@@ -20,19 +20,23 @@ public class GamePanel extends JPanel{
     int applesEaten;
     int appleX;
     int appleY;
-    int shrinkAppleX;
-    int shrinkAppleY;
-    int deathAppleX;
-    int deathAppleY;
+    int shrinkAppleX = -1*UNIT_SIZE;
+    int shrinkAppleY = -1*UNIT_SIZE;
+    boolean haveShrink = true;
+    int deathAppleX = -1*UNIT_SIZE;
+    int deathAppleY = -1*UNIT_SIZE;
+    boolean haveDeath = true;
     char direction = 'R';
     boolean gameGoing = false;
+    boolean speedUp = true;
+    int deathReason = -1;
     Random random;
     ScheduledExecutorService executorService;
 
     public GamePanel() {
         random = new Random();
         this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
-        this.setBackground(Color.dark_gray);
+        this.setBackground(Color.DARK_GRAY);
         this.setFocusable(true);
         this.addKeyListener(new MyKeyAdapter());
         startGame();
@@ -53,11 +57,17 @@ public class GamePanel extends JPanel{
             move();
             checkApple();
             checkCollisions();
-            if(applesEaten > 5){
+            if((applesEaten == 5) && haveShrink){
                 newShrinkApple();
+                haveShrink = false;
             }
-            if(applesEaten > 10){
+            if((applesEaten >= 10) && (applesEaten % 2 == 0) && haveDeath){
                 newDeathApple();
+                haveDeath = false;
+            }
+            if((applesEaten >= 15) && speedUp){
+                DELAY--;
+                speedUp = false;
             }
         }
         repaint();
@@ -67,7 +77,7 @@ public class GamePanel extends JPanel{
         super.paintComponent(g);
 
         if (gameGoing) {
-            g.setColor(Color.light_gray);
+            g.setColor(Color.gray);
             for (int i = 0; i < SCREEN_HEIGHT; i += 2*UNIT_SIZE) {
                 for(int j = 0; j < SCREEN_WIDTH; j += 2*UNIT_SIZE){
                     g.fillRect(j, i, UNIT_SIZE, UNIT_SIZE);
@@ -79,7 +89,7 @@ public class GamePanel extends JPanel{
                 }
             }
             g.setColor(Color.white);
-            g.fillOval(deathAppleX, deathAppleY, Unit_SIZE, UNIT_SIZE);
+            g.fillOval(deathAppleX, deathAppleY, UNIT_SIZE, UNIT_SIZE);
             g.setColor(Color.cyan);
             g.fillOval(shrinkAppleX, shrinkAppleY, UNIT_SIZE, UNIT_SIZE);
             g.setColor(Color.red);
@@ -98,6 +108,17 @@ public class GamePanel extends JPanel{
             g.setFont(new Font("American Typewriter", Font.BOLD, 40));
             FontMetrics metrics = getFontMetrics(g.getFont());
             g.drawString("Score: " + applesEaten, (SCREEN_WIDTH - metrics.stringWidth("Score: " + applesEaten)) / 2, g.getFont().getSize());
+            if(applesEaten == 5 || applesEaten == 6){
+                g.setFont(new Font("Times", Font.BOLD, 20));
+                g.setColor(Color.cyan);
+                String message = "Blue apple SHRINKS the snake!";
+                g.drawString(message, (SCREEN_WIDTH / 4), 80);
+            }
+            if(applesEaten == 10 || applesEaten == 11){
+                g.setFont(new Font("Times", Font.BOLD, 20));
+                g.setColor(Color.white);
+                g.drawString("White apple KILLS the snake!", (SCREEN_WIDTH/4), 80);
+            }
         }else{
             gameOver(g);
         }
@@ -115,7 +136,13 @@ public class GamePanel extends JPanel{
 
     public void newDeathApple() {
         deathAppleX = random.nextInt((int) SCREEN_WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        while(Math.abs(deathAppleX - x[0]) < 5*UNIT_SIZE){
+            deathAppleX = random.nextInt((int) SCREEN_WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        }
         deathAppleY = random.nextInt((int) SCREEN_HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+        while(Math.abs(deathAppleY - y[0]) < 5*UNIT_SIZE){
+            deathAppleY = random.nextInt((int) SCREEN_WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        }
     }
 
     public void move() {
@@ -145,16 +172,24 @@ public class GamePanel extends JPanel{
         if (((x[0] == appleX) && (y[0] == appleY))) {
             bodyParts++;
             applesEaten++;
+            haveDeath = true;
+            speedUp = true;
             newApple();
-        } else if ((x[0] == shrinkAppleX) && (y[0] == shrinkAppleY)){
+        }
+        if ((x[0] == shrinkAppleX) && (y[0] == shrinkAppleY)) {
             bodyParts--;
             applesEaten++;
-            if(bodyParts == 0){
+            haveDeath = true;
+            speedUp = true;
+            if (bodyParts == 0) {
                 gameGoing = false;
+                deathReason = 1;
             }
             newShrinkApple();
-        } else if ((x[0] == deathAppleX) && (y[0] == deathAppleY)){
+        }
+        if ((x[0] == deathAppleX) && (y[0] == deathAppleY)){
             gameGoing = false;
+            deathReason = 2;
         }
     }
 
@@ -163,11 +198,13 @@ public class GamePanel extends JPanel{
         for (int i = bodyParts; i > 0; i--) {
             if ((x[0] == x[i]) && (y[0] == y[i])) {
                 gameGoing = false;
+                deathReason = 3;
             }
         }
         //checks if head collides with wall
-        if (x[0] < 0 || x[0] > SCREEN_WIDTH || y[0] < 0 || y[0] > SCREEN_HEIGHT){
+        if (x[0] < 0 || x[0] > (SCREEN_WIDTH - UNIT_SIZE) || y[0] < 0 || y[0] > (SCREEN_HEIGHT-UNIT_SIZE)){
             gameGoing = false;
+            deathReason = 4;
         }
     }
 
@@ -178,12 +215,31 @@ public class GamePanel extends JPanel{
         FontMetrics metrics1 = getFontMetrics(g.getFont());
         g.drawString("Score: " + applesEaten, (SCREEN_WIDTH - metrics1.stringWidth("Score: " + applesEaten)) / 2, g.getFont().getSize());
 
-
         //Game Over text
         g.setColor(Color.red);
         g.setFont(new Font("American Typewriter", Font.BOLD, 75));
         FontMetrics metrics2 = getFontMetrics(g.getFont());
         g.drawString("Game Over", (SCREEN_WIDTH - metrics2.stringWidth("Game Over")) / 2, SCREEN_HEIGHT / 2);
+
+        //death reason
+        g.setFont(new Font("American Typewriter", Font.BOLD, 30));
+        String message = "";
+        if(deathReason == 1){
+            message = "You got too small!";
+            g.drawString(message, (int)(SCREEN_HEIGHT/3.75), 350);
+        }else if(deathReason == 2){
+            message = "You ate something rotten!";
+            g.drawString(message, (int)(SCREEN_HEIGHT/5.3571428571), 350);
+        }else if(deathReason == 3){
+            message = "Stop hitting yourself!";
+            g.drawString(message, (SCREEN_HEIGHT/4), 350);
+        }else if(deathReason == 4){
+            message = "There's a wall there!";
+            g.drawString(message, (SCREEN_HEIGHT/4), 350);
+        }
+
+
+
     }
 
     /*
