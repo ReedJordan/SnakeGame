@@ -30,6 +30,7 @@ public class GamePanel extends JPanel{
     boolean gameGoing = false;
     boolean speedUp = true;
     int deathReason = -1;
+    boolean canMove = true;
     Random random;
     ScheduledExecutorService executorService;
 
@@ -57,6 +58,7 @@ public class GamePanel extends JPanel{
             move();
             checkApple();
             checkCollisions();
+            canMove = true;
             if((applesEaten == 5) && haveShrink){
                 newShrinkApple();
                 haveShrink = false;
@@ -66,7 +68,7 @@ public class GamePanel extends JPanel{
                 haveDeath = false;
             }
             if((applesEaten >= 15) && speedUp){
-                DELAY--;
+                DELAY -=5;
                 speedUp = false;
             }
         }
@@ -242,54 +244,35 @@ public class GamePanel extends JPanel{
 
     }
 
-    /*
-    public void actionPerformed(ActionEvent e) {
-        if (gameGoing) {
-            move();
-            checkApple();
-            checkCollisions();
-        }
-        repaint();
-    }
-    */
-
     public class MyKeyAdapter extends KeyAdapter {
         @Override
         public void keyPressed(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_LEFT:
-                    if (direction != 'R') {
+                    if ((direction != 'R') && canMove) {
                         direction = 'L';
+                        canMove = false;
                     }
                     break;
                 case KeyEvent.VK_RIGHT:
-                    if (direction != 'L') {
+                    if ((direction != 'L') && canMove) {
                         direction = 'R';
+                        canMove = false;
                     }
                     break;
                 case KeyEvent.VK_UP:
-                    if (direction != 'D') {
+                    if ((direction != 'D') && canMove) {
                         direction = 'U';
+                        canMove = false;
                     }
                     break;
                 case KeyEvent.VK_DOWN:
-                    if (direction != 'U') {
+                    if ((direction != 'U') && canMove) {
                         direction = 'D';
+                        canMove = false;
                     }
                     break;
             }
         }
     }
-
-    /*
-    public static void main(String[] args){
-        JFrame frame = new JFrame("Snake");
-        GamePanel gamePanel = new GamePanel();
-        frame.add(gamePanel);
-        frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-    }
-     */
 }
